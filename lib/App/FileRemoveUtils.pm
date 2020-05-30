@@ -107,7 +107,7 @@ sub delete_all_empty_dirs {
             return unless -d _;
             return if File::MoreUtil::dir_has_non_subdirs($_);
             my $path = ($File::Find::dir eq '.' ? '' : "$File::Find::dir/"). $_;
-            $dirs{$path} = { map {$_=>1} File::MoreUtil::get_dir_subdirs($_) };
+            $dirs{$path} = { map {$_=>1} File::MoreUtil::get_dir_entries($_) };
         },
         '.'
     );
