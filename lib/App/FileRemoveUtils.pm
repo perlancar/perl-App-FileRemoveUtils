@@ -66,7 +66,9 @@ sub delete_all_empty_files {
         }
     }
 
-    [200];
+    [200, "OK", undef, {
+        'func.files' => \@files,
+    }];
 }
 
 $SPEC{delete_all_empty_dirs} = {
