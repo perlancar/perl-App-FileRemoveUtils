@@ -38,6 +38,53 @@ sub list_all_empty_files {
     \@files;
 }
 
+$SPEC{list_all_empty_dirs} = {
+    v => 1.1,
+    summary => 'List all sempty (zero-entry) subdirectories in the current directory tree',
+    args_as => 'array',
+    args => {
+        include_would_be_empty => {
+            summary => 'Include directories that would be empty if '.
+                'their empty subdirectories are removed',
+            schema => 'bool*',
+            pos => 0,
+            default => 1,
+        },
+    },
+    result_naked => 1,
+};
+sub list_all_empty_dirs {
+    require File::Find;
+    require File::MoreUtil;
+
+    my $include_would_be_empty = $_[0] // 1;
+
+    my %dirs; # key = path, value = {subdir => 1}
+    File::Find::find(
+        sub {
+            return if $_ eq '.' || $_ eq '..';
+            return if -l $_;
+            return unless -d _;
+            return if File::MoreUtil::dir_has_non_subdirs($_);
+            my $path = "$File::Find::dir/$_";
+            $dirs{$path} = { map {$_=>1} File::MoreUtil::get_dir_entries($_) };
+        },
+        '.'
+    );
+
+    my @dirs;
+    for my $dir (sort { length($b) <=> length($a) || $a cmp $b } keys %dirs) {
+        if (!(keys %{ $dirs{$dir} })) {
+            push @dirs, $dir;
+            $dir =~ m!(.+)/(.+)! or next;
+            my ($parent, $base) = ($1, $2);
+            delete $dirs{$parent}{$base};
+        }
+    }
+
+    \@dirs;
+}
+
 $SPEC{delete_all_empty_files} = {
     v => 1.1,
     summary => 'Delete all empty (zero-sized) files recursively',
@@ -109,31 +156,12 @@ $SPEC{delete_all_empty_dirs} = {
     ],
 };
 sub delete_all_empty_dirs {
-    require File::Find;
-    require File::MoreUtil;
     my %args = @_;
 
-    my %dirs; # key = path, value = {subdir => 1}
-    File::Find::find(
-        sub {
-            return if $_ eq '.' || $_ eq '..';
-            return if -l $_;
-            return unless -d _;
-            return if File::MoreUtil::dir_has_non_subdirs($_);
-            my $path = ($File::Find::dir eq '.' ? '' : "$File::Find::dir/"). $_;
-            $dirs{$path} = { map {$_=>1} File::MoreUtil::get_dir_entries($_) };
-        },
-        '.'
-    );
-
-    for my $dir (sort { length($b) <=> length($a) } keys %dirs) {
+    my $dirs = list_all_empty_dirs();
+    for my $dir (@$dirs) {
         if ($args{-dry_run}) {
-            if (!(keys %{ $dirs{$dir} })) {
-                log_info "[DRY-RUN] Deleting %s ...", $dir;
-                $dir =~ m!(.+)/(.+)! or next;
-                my ($parent, $base) = ($1, $2);
-                delete $dirs{$parent}{$base};
-            }
+            log_info "[DRY-RUN] Deleting %s ...", $dir;
         } else {
             if (File::MoreUtil::dir_empty($dir)) {
                 log_info "Deleting %s ...", $dir;
