@@ -15,6 +15,29 @@ our @EXPORT_OK = qw(delete_all_empty_files delete_all_empty_dirs);
 
 our %SPEC;
 
+$SPEC{list_all_empty_files} = {
+    v => 1.1,
+    summary => 'List all empty (zero-sized) files in the current directory tree',
+    args => {},
+    result_naked => 1,
+};
+sub list_all_empty_files {
+    require File::Find;
+
+    my @files;
+    File::Find::find(
+        sub {
+            -l $_; # perform lstat instead of stat
+            return unless -f _;
+            return if -s _;
+            push @files, "$File::Find::dir/$_";
+        },
+        '.'
+    );
+
+    \@files;
+}
+
 $SPEC{delete_all_empty_files} = {
     v => 1.1,
     summary => 'Delete all empty (zero-sized) files recursively',
@@ -41,21 +64,10 @@ $SPEC{delete_all_empty_files} = {
     ],
 };
 sub delete_all_empty_files {
-    require File::Find;
     my %args = @_;
 
-    my @files;
-    File::Find::find(
-        sub {
-            -l $_; # perform lstat instead of stat
-            return unless -f _;
-            return if -s _;
-            push @files, "$File::Find::dir/$_";
-        },
-        '.'
-    );
-
-    for my $f (@files) {
+    my $files = list_all_empty_files();
+    for my $f (@$files) {
         if ($args{-dry_run}) {
             log_info "[DRY-RUN] Deleting %s ...", $f;
         } else {
@@ -67,7 +79,7 @@ sub delete_all_empty_files {
     }
 
     [200, "OK", undef, {
-        'func.files' => \@files,
+        'func.files' => $files,
     }];
 }
 
