@@ -76,9 +76,11 @@ sub list_all_empty_dirs {
     for my $dir (sort { length($b) <=> length($a) || $a cmp $b } keys %dirs) {
         if (!(keys %{ $dirs{$dir} })) {
             push @dirs, $dir;
-            $dir =~ m!(.+)/(.+)! or next;
-            my ($parent, $base) = ($1, $2);
-            delete $dirs{$parent}{$base};
+            if ($include_would_be_empty) {
+                $dir =~ m!(.+)/(.+)! or next;
+                my ($parent, $base) = ($1, $2);
+                delete $dirs{$parent}{$base};
+            }
         }
     }
 
