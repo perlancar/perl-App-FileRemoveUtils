@@ -2,3 +2,4 @@ App-FileRemoveUtils-*
 .build
 *~
 nytprof*
+.DS_Store
