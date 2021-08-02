@@ -1,6 +1,8 @@
 package App::FileDeleteUtils;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 1;

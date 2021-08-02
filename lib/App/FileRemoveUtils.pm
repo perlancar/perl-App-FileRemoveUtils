@@ -191,4 +191,6 @@ This distribution provides the following command-line utilities:
 
 L<rmhere> from L<App::rmhere>
 
+Other similar distributions: L<App::FileModifyUtils>.
+
 =cut
